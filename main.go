@@ -23,7 +23,7 @@ func main() {
 	}
 
 	//加载ca管理员身份
-	admin, err := model.LoadIdentity("static\\admin.key", "static\\admin.crt")
+	admin, err := loach.LoadIdentity("static\\admin.key", "static\\admin.crt")
 	if err != nil {
 		log.Fatalf("Failed to load ca admin ,err=%s", err)
 		return
