@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/x509/pkix"
 	"encoding/base64"
+	_ "io/ioutil"
 	"log"
+	_ "os"
 
 	"github.com/learnergo/cuttle/config"
 	"github.com/learnergo/cuttle/node"
@@ -16,8 +18,8 @@ import (
 type CertType string
 
 const (
-	ConfigPath    string = "static\\crypto-config.yaml"
-	SpeConfigPath string = "static\\cuttle.yaml"
+	ConfigPath    string = "static/crypto-config.yaml"
+	SpeConfigPath string = "static/cuttle.yaml"
 
 	TlsCert CertType = "tls"
 	ECert   CertType = "ecert"
@@ -25,21 +27,21 @@ const (
 )
 
 func main() {
-	RunSpeConfig()
+	RunConfig()
 }
 
 func RunConfig() {
 	//加载节点集
 	nodes, err := node.NewNode(ConfigPath)
 	if err != nil || len(nodes) == 0 {
-		log.Fatalf("Failed to load nodes ,err=%s", err)
+		log.Printf("Failed to load nodes ,err=%s", err)
 		return
 	}
 
 	//将节点集转为操作集
 	speConfig, err := node.ParseNodesToSpeConfig(nodes)
 	if err != nil || len(nodes) == 0 {
-		log.Fatalf("Failed to Parse nodes to speConfig ,err=%s", err)
+		log.Printf("Failed to Parse nodes to speConfig ,err=%s", err)
 		return
 	}
 
@@ -97,10 +99,10 @@ func register(speConfig *config.SpeConfig) {
 		}
 		response, err := client.Register(request)
 		if err != nil {
-
+			log.Printf("Register %s Failed,because err=%s", value.Name, err)
 		} else {
 			if !response.Success || len(response.Errors) > 0 {
-
+				log.Printf("Register %s Failed,because err=%s", value.Name, response.Error())
 			}
 			log.Printf("Register %s success,password=%s", value.Name, response.Result.Secret)
 		}
@@ -142,6 +144,7 @@ func enrollCert(certType CertType, speConfig *config.SpeConfig) {
 			key, cert, err := model.SplitIdentity(response.Identity)
 			if err != nil {
 				log.Printf("Failed Enroll %s,err=%s", value.Name, err)
+				return
 			}
 			chain := model.CertToString(response.CertChain)
 			SaveIdentity(certType, value.Output, key, cert, chain)
@@ -187,3 +190,13 @@ func SaveIdentity(certType CertType, outPut, key, cert, chain string) {
 	case CaCert:
 	}
 }
+
+//func ArrangeFiles(basePath string) {
+//	files, err := ioutil.ReadDir(basePath)
+//	if err != nil {
+//		log.Printf("Failed to read %s dir,err=%s", basePath, err)
+//	}
+//	for _, value := range files {
+
+//	}
+//}

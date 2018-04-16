@@ -181,7 +181,7 @@ func ParseNodesToSpeConfig(nodes []Node) (*config.SpeConfig, error) {
 				Type:           string([]byte(value.Type)),
 				Secret:         "adminpwd",
 				MaxEnrollments: -1,
-				Affiliation:    "*",
+				Affiliation:    ".",
 				Attrs: []config.AttrsConfig{config.AttrsConfig{
 					Name:  "hf.Registrar.Roles",
 					Value: string([]byte(value.Type)),
