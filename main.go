@@ -147,6 +147,7 @@ func enrollCert(certType CertType, speConfig *config.SpeConfig) {
 				return
 			}
 			chain := model.CertToString(response.CertChain)
+			log.Printf("Succeed to Enroll %s", value.Name)
 			SaveIdentity(certType, value.Output, key, cert, chain)
 		}
 	}
