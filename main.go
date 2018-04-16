@@ -16,10 +16,8 @@ import (
 type CertType string
 
 const (
-	FilePath  string = "static\\crypto-config.yaml"
-	CaPath    string = "static\\ca.yaml"
-	AdminKey  string = "static\\admin.key"
-	AdminCert string = "static\\admin.crt"
+	ConfigPath    string = "static\\crypto-config.yaml"
+	SpeConfigPath string = "static\\cuttle.yaml"
 
 	TlsCert CertType = "tls"
 	ECert   CertType = "ecert"
@@ -27,8 +25,12 @@ const (
 )
 
 func main() {
+	RunSpeConfig()
+}
+
+func RunConfig() {
 	//加载节点集
-	nodes, err := node.NewNode(FilePath)
+	nodes, err := node.NewNode(ConfigPath)
 	if err != nil || len(nodes) == 0 {
 		log.Fatalf("Failed to load nodes ,err=%s", err)
 		return
@@ -49,7 +51,22 @@ func main() {
 
 	//登记通讯证书
 	enrollCert(TlsCert, speConfig)
+}
 
+func RunSpeConfig() {
+	speConfig, err := config.NewSpeConfig(SpeConfigPath)
+	if err != nil {
+		log.Fatalf("Failed to load SpeConfig ,err=%s", err)
+		return
+	}
+	//注册节点信息
+	register(speConfig)
+	//登记身份证书
+
+	enrollCert(ECert, speConfig)
+
+	//登记通讯证书
+	enrollCert(TlsCert, speConfig)
 }
 
 func register(speConfig *config.SpeConfig) {
