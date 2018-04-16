@@ -83,7 +83,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 				n.Type = constant.User
 			}
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
-			n.Output = getOrdererOutput(n.Name, value.Domain, n.Type, cConfig.Output)
+			n.Output = getPeerOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
 			nodes = append(nodes, n)
 		}
@@ -114,7 +114,7 @@ func getOrdererOutput(name string, domain string, nodeType constant.NodeType, ba
 		path3 = "users"
 	}
 	path4 := name
-	return fmt.Sprintf("%s\\%s\\%s\\%s\\%s", path0, path1, path2, path3, path4)
+	return fmt.Sprintf("%s/%s/%s/%s/%s", path0, path1, path2, path3, path4)
 }
 
 func getPeerOutput(name string, domain string, nodeType constant.NodeType, basePath string) string {
@@ -122,13 +122,13 @@ func getPeerOutput(name string, domain string, nodeType constant.NodeType, baseP
 	path1 := "peerOrganizations"
 	path2 := domain
 	path3 := ""
-	if nodeType == constant.Orderer {
+	if nodeType == constant.Peer {
 		path3 = "peers"
 	} else {
 		path3 = "users"
 	}
 	path4 := name
-	return fmt.Sprintf("%s\\%s\\%s\\%s\\%s", path0, path1, path2, path3, path4)
+	return fmt.Sprintf("%s/%s/%s/%s/%s", path0, path1, path2, path3, path4)
 }
 
 func getPeers(specs []config.Spec, temp *config.Template, domain string) []string {
