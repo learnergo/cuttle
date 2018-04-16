@@ -1,4 +1,6 @@
 url: http://192.168.5.136:6054
+admin_key: static\\admin.key
+admin_cert: static\\admin.crt
 crypto:
   family: ecdsa
   algorithm: P256-SHA256

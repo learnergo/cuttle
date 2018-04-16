@@ -15,12 +15,14 @@ type CryptoConfig struct {
 
 type OrdererConfig struct {
 	Name   string `yaml:"Name"`
+	CaFile string `yaml:"CaFile"`
 	Domain string `yaml:"Domain"`
 	Specs  []Spec `yaml:"Specs"`
 }
 
 type PeerConfig struct {
 	Name     string   `yaml:"Name"`
+	CaFile   string   `yaml:"CaFile"`
 	Domain   string   `yaml:"Domain"`
 	Specs    []Spec   `yaml:"Specs"`
 	Template Template `yaml:"Template"`

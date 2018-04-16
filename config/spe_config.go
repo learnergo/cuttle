@@ -32,6 +32,7 @@ type RegisterConfig struct {
 type AttrsConfig struct {
 	Name  string `yaml:"Name"`
 	Value string `yaml:"Value"`
+	ECert bool   `yaml:"ECert,omitempty"`
 }
 
 type EnrollConfig struct {

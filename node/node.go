@@ -10,6 +10,7 @@ import (
 
 type Node struct {
 	Name    string
+	CaFile  string
 	Type    constant.NodeType
 	Subject *pkix.Name
 	Output  string
@@ -37,6 +38,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 				n.Name = o.CommonName
 			}
 			n.Type = constant.Orderer
+			n.CaFile = value.CaFile
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getOrdererOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
@@ -51,6 +53,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			} else {
 				n.Type = constant.User
 			}
+			n.CaFile = value.CaFile
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getOrdererOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
@@ -65,6 +68,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			n := Node{}
 			n.Name = p
 			n.Type = constant.Peer
+			n.CaFile = value.CaFile
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getPeerOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
@@ -82,6 +86,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			} else {
 				n.Type = constant.User
 			}
+			n.CaFile = value.CaFile
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getPeerOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
@@ -168,7 +173,7 @@ func ParseNodesToSpeConfig(nodes []Node) (*config.SpeConfig, error) {
 	for _, value := range nodes {
 		nodeConfig := config.NodeConfig{
 			Name:   value.Name,
-			CaFile: "",
+			CaFile: value.CaFile,
 			Output: value.Output,
 			Register: config.RegisterConfig{
 				Registered:     false,
@@ -188,16 +193,30 @@ func ParseNodesToSpeConfig(nodes []Node) (*config.SpeConfig, error) {
 			Enroll: config.EnrollConfig{
 				EnrollID: value.Name,
 				Secret:   "adminpwd",
-				Subject: config.Subject{
-					Country:            value.Subject.Country[0],
-					Province:           value.Subject.Province[0],
-					Locality:           value.Subject.Locality[0],
-					Organization:       value.Subject.Organization[0],
-					OrganizationalUnit: value.Subject.OrganizationalUnit[0],
-				},
+				Subject:  ParseSubject(value.Subject),
 			},
 		}
 		speConfig.Nodes = append(speConfig.Nodes, nodeConfig)
 	}
 	return speConfig, nil
+}
+
+func ParseSubject(subject *pkix.Name) config.Subject {
+	result := config.Subject{}
+	if subject.Country != nil && len(subject.Country) > 0 {
+		result.Country = subject.Country[0]
+	}
+	if subject.Province != nil && len(subject.Province) > 0 {
+		result.Province = subject.Province[0]
+	}
+	if subject.Locality != nil && len(subject.Locality) > 0 {
+		result.Locality = subject.Locality[0]
+	}
+	if subject.Organization != nil && len(subject.Organization) > 0 {
+		result.Organization = subject.Organization[0]
+	}
+	if subject.OrganizationalUnit != nil && len(subject.OrganizationalUnit) > 0 {
+		result.OrganizationalUnit = subject.OrganizationalUnit[0]
+	}
+	return result
 }

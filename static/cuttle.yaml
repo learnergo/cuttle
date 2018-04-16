@@ -1,6 +1,6 @@
 Nodes:
   - Name: orderer.example.com
-    CaFile: ca.yaml
+    CaFile: static\\ca.yaml
     Output: D:/crypto-config
     Register:
       Registered: false # 是否已经注册过，如果已经注册过直接颁发证书
