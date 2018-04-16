@@ -1,0 +1,27 @@
+Nodes:
+  - Name: orderer.example.com
+    CaFile: ca.yaml
+    Output: D:/crypto-config
+    Register:
+      Registered: false # 是否已经注册过，如果已经注册过直接颁发证书
+      EnrollID: orderer.example.com
+      Type: orderer
+      Secret: adminpwd
+      MaxEnrollments: -1
+      Affiliation: "*"
+      Attrs: 
+        - Name: hf.Registrar.Roles
+          Value: peer
+        - Name: hf.Revoker
+          Value: false
+
+    Enroll:
+      EnrollID: orderer.example.com
+      Secret: adminpwd
+      Subject:
+        Country: CN
+        Province: 
+        Locality:
+        Organization:
+        OrganizationalUnit:
+        CommonName:

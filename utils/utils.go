@@ -2,6 +2,7 @@ package utils
 
 import (
 	"os"
+	"path"
 )
 
 func DirExist(path string) bool {
@@ -23,8 +24,10 @@ func Mkdir(path string) error {
 	return nil
 }
 
-func SaveFile(data, path string) error {
-	file, err := os.Create(path)
+func SaveFile(data, p string) error {
+	dir := path.Dir(p)
+	Mkdir(dir)
+	file, err := os.Create(p)
 	defer file.Close()
 
 	if err != nil {

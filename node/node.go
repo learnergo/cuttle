@@ -161,3 +161,43 @@ func getUsers(count int) []string {
 	}
 	return nil
 }
+
+func ParseNodesToSpeConfig(nodes []Node) (*config.SpeConfig, error) {
+	speConfig := new(config.SpeConfig)
+
+	for _, value := range nodes {
+		nodeConfig := config.NodeConfig{
+			Name:   value.Name,
+			CaFile: "",
+			Output: value.Output,
+			Register: config.RegisterConfig{
+				Registered:     false,
+				EnrollID:       value.Name,
+				Type:           string([]byte(value.Type)),
+				Secret:         "adminpwd",
+				MaxEnrollments: -1,
+				Affiliation:    "*",
+				Attrs: []config.AttrsConfig{config.AttrsConfig{
+					Name:  "hf.Registrar.Roles",
+					Value: string([]byte(value.Type)),
+				}, config.AttrsConfig{
+					Name:  "hf.Revoker",
+					Value: "false",
+				}},
+			},
+			Enroll: config.EnrollConfig{
+				EnrollID: value.Name,
+				Secret:   "adminpwd",
+				Subject: config.Subject{
+					Country:            value.Subject.Country[0],
+					Province:           value.Subject.Province[0],
+					Locality:           value.Subject.Locality[0],
+					Organization:       value.Subject.Organization[0],
+					OrganizationalUnit: value.Subject.OrganizationalUnit[0],
+				},
+			},
+		}
+		speConfig.Nodes = append(speConfig.Nodes, nodeConfig)
+	}
+	return speConfig, nil
+}

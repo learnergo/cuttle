@@ -10,17 +10,23 @@ import (
 	"github.com/learnergo/loach/model"
 )
 
+type CertType string
+
 const (
-	FilePath  string = "static\\file.yaml"
+	FilePath  string = "static\\crypto-config.yaml"
 	CaPath    string = "static\\ca.yaml"
 	AdminKey  string = "static\\admin.key"
 	AdminCert string = "static\\admin.crt"
+
+	TlsCert CertType = "tls"
+	ECert   CertType = "ecert"
+	CaCert  CertType = "ca"
 )
 
 func main() {
 	//加载节点集
 	nodes, err := node.NewNode(FilePath)
-	if err != nil {
+	if err != nil || len(nodes) == 0 {
 		log.Fatalf("Failed to load nodes ,err=%s", err)
 		return
 	}
@@ -39,36 +45,48 @@ func main() {
 	}
 
 	//注册节点信息
+	register(nodes, client, admin)
+	//登记身份证书
+
+	enrollECert(nodes, client, admin)
+
+	//登记通讯证书
+	enrollTlsCert(nodes, client, admin)
+
+}
+
+func register(nodes []node.Node, client model.Client, admin *model.Identity) map[string]string {
+	failList := make(map[string]string)
+
 	for _, value := range nodes {
-		t := string([]byte(value.Type))
+		nodeType := string([]byte(value.Type))
 		var attrs []model.RegisterAttribute
-		attrs = append(attrs, model.RegisterAttribute{Name: "hf.Registrar.Roles", Value: t})
+		attrs = append(attrs, model.RegisterAttribute{Name: "hf.Registrar.Roles", Value: nodeType})
 		attrs = append(attrs, model.RegisterAttribute{Name: "hf.Revoker", Value: "false"})
 
 		request := &model.RegisterRequest{
-			EnrolmentId:    value.Name,
-			Type:           t,
+			EnrollID:       value.Name,
+			Type:           nodeType,
 			Secret:         "adminpwd",
 			MaxEnrollments: -1,
-			Affiliation:    "org1.department1",
+			Affiliation:    "*",
 			Attrs:          attrs,
 		}
 		response, err := client.Register(admin, request)
 		if err != nil {
-			log.Printf("Failed Register,err=%s", err)
+			failList[value.Name] = err.Error()
 		} else {
-			if !response.Success {
-				log.Printf("Failed Register,err=%s", response.Error())
+			if !response.Success || len(response.Errors) > 0 {
+				failList[value.Name] = response.Error().Error()
 			}
-			if len(response.Errors) > 0 {
-				log.Printf("Failed Register,err=%s", response.Error())
-			}
-			result := response.Result.Secret
-			log.Printf("Register success,password=%s", result)
+			log.Printf("Register %s success,password=%s", value.Name, response.Result.Secret)
 		}
 	}
+	return failList
+}
 
-	//登记身份证书
+func enrollECert(nodes []node.Node, client model.Client, admin *model.Identity) map[string]string {
+	failList := make(map[string]string)
 
 	for _, value := range nodes {
 		request := &model.EnrollRequest{
@@ -78,6 +96,7 @@ func main() {
 		}
 		response, err := client.Enroll(request)
 		if err != nil {
+			failList[value.Name] = err.Error()
 			log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 		} else {
 			key, cert, err := model.SplitIdentity(response.Identity)
@@ -85,11 +104,15 @@ func main() {
 				log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 			}
 			chain := model.CertToString(response.CertChain)
-			SaveIdentity(true, value.Output, key, cert, chain)
+			SaveIdentity(ECert, value.Output, key, cert, chain)
 		}
 	}
+	return failList
+}
 
-	//登记通讯证书
+func enrollTlsCert(nodes []node.Node, client model.Client, admin *model.Identity) map[string]string {
+	failList := make(map[string]string)
+
 	for _, value := range nodes {
 		request := &model.EnrollRequest{
 			EnrollID: value.Name,
@@ -104,16 +127,18 @@ func main() {
 			key, cert, err := model.SplitIdentity(response.Identity)
 
 			if err != nil {
+				failList[value.Name] = err.Error()
 				log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 			}
 			chain := model.CertToString(response.CertChain)
 
-			SaveIdentity(false, value.Output, key, cert, chain)
+			SaveIdentity(TlsCert, value.Output, key, cert, chain)
 		}
 	}
+	return failList
 }
 
-func SaveIdentity(eCert bool, outPut, key, cert, chain string) {
+func SaveIdentity(certType CertType, outPut, key, cert, chain string) {
 
 	keyData, _ := base64.StdEncoding.DecodeString(key)
 	key = string(keyData)
@@ -122,26 +147,24 @@ func SaveIdentity(eCert bool, outPut, key, cert, chain string) {
 	chainData, _ := base64.StdEncoding.DecodeString(chain)
 	chain = string(chainData)
 
-	if eCert {
+	switch certType {
+	case ECert:
+
 		outPut += "/" + "msp"
 		//保存私钥
 		keyPath := outPut + "/" + "keystore"
-		utils.Mkdir(keyPath) //这两个方法应该合并
 		utils.SaveFile(key, keyPath+"/"+"key.key")
 
 		//保存证书
 		certPath := outPut + "/" + "signcerts"
-		utils.Mkdir(certPath)
 		utils.SaveFile(cert, certPath+"/"+"cert.crt")
 
 		//保存证书链
 		chainPath := outPut + "/" + "cacerts"
-		utils.Mkdir(chainPath)
 		utils.SaveFile(chain, chainPath+"/"+"ca-cert.crt")
 
-	} else {
+	case TlsCert:
 		outPut += "/" + "tls"
-		utils.Mkdir(outPut)
 		//保存私钥
 		utils.SaveFile(key, outPut+"/"+"server.key")
 
@@ -150,5 +173,6 @@ func SaveIdentity(eCert bool, outPut, key, cert, chain string) {
 
 		//保存证书链
 		utils.SaveFile(chain, outPut+"/"+"ca.crt")
+	case CaCert:
 	}
 }
