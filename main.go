@@ -149,12 +149,13 @@ func enrollCert(certType CertType, speConfig *config.SpeConfig) {
 			}
 			chain := model.CertToString(response.CertChain)
 			log.Printf("Succeed to Enroll %s", value.Name)
-			SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, value.Output, key, cert, chain)
+			_, caName := client.GetServer()
+			SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
 		}
 	}
 }
 
-func SaveIdentity(certType CertType, keyName, certName, outPut, key, cert, chain string) {
+func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cert, chain string) {
 
 	keyData, _ := base64.StdEncoding.DecodeString(key)
 	key = string(keyData)
@@ -177,7 +178,7 @@ func SaveIdentity(certType CertType, keyName, certName, outPut, key, cert, chain
 
 		//保存证书链
 		chainPath := outPut + "/" + "cacerts"
-		utils.SaveFile(chain, chainPath+"/"+"ca-cert.crt")
+		utils.SaveFile(chain, chainPath+"/"+caName+"-cert.pem")
 
 	case TlsCert:
 		outPut += "/" + "tls"
