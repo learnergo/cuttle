@@ -11,7 +11,6 @@
 
 
 ```
-go get -u learnergo/loach
 go get -u golang.org/x/crypto/sha3
 go get -u gopkg.in/yaml.v2
 ```
