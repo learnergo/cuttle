@@ -142,18 +142,19 @@ func enrollCert(certType CertType, speConfig *config.SpeConfig) {
 			log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 		} else {
 			key, cert, err := model.SplitIdentity(response.Identity)
+			ski := response.Identity.Ski
 			if err != nil {
 				log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 				return
 			}
 			chain := model.CertToString(response.CertChain)
 			log.Printf("Succeed to Enroll %s", value.Name)
-			SaveIdentity(certType, value.Output, key, cert, chain)
+			SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, value.Output, key, cert, chain)
 		}
 	}
 }
 
-func SaveIdentity(certType CertType, outPut, key, cert, chain string) {
+func SaveIdentity(certType CertType, keyName, certName, outPut, key, cert, chain string) {
 
 	keyData, _ := base64.StdEncoding.DecodeString(key)
 	key = string(keyData)
@@ -168,11 +169,11 @@ func SaveIdentity(certType CertType, outPut, key, cert, chain string) {
 		outPut += "/" + "msp"
 		//保存私钥
 		keyPath := outPut + "/" + "keystore"
-		utils.SaveFile(key, keyPath+"/"+"key.key")
+		utils.SaveFile(key, keyPath+"/"+keyName+".key")
 
 		//保存证书
 		certPath := outPut + "/" + "signcerts"
-		utils.SaveFile(cert, certPath+"/"+"cert.crt")
+		utils.SaveFile(cert, certPath+"/"+certName+"-cert.pem")
 
 		//保存证书链
 		chainPath := outPut + "/" + "cacerts"
