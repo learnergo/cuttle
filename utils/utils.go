@@ -18,7 +18,7 @@ func DirExist(path string) bool {
 
 func Mkdir(path string) error {
 	if !DirExist(path) {
-		err := os.MkdirAll(path, os.ModePerm)
+		err := os.MkdirAll(path, 0755)
 		return err
 	}
 	return nil

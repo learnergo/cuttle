@@ -32,27 +32,25 @@ func main() {
 
 func RunConfig() {
 	//加载节点集
-	nodes, err := node.NewNode(ConfigPath)
-	if err != nil || len(nodes) == 0 {
-		log.Printf("Failed to load nodes ,err=%s", err)
+	cryptoSys, err := node.NewNode(ConfigPath)
+	if err != nil {
+		log.Printf("Failed to load cryptoSys ,err=%s", err)
 		return
 	}
 
-	//将节点集转为操作集
-	speConfig, err := node.ParseNodesToSpeConfig(nodes)
-	if err != nil || len(nodes) == 0 {
-		log.Printf("Failed to Parse nodes to speConfig ,err=%s", err)
-		return
+	for _, value := range cryptoSys.PeerOrgs {
+		if err := generatePeerOrg(value); err != nil {
+			log.Printf("Failed to load nodes ,err=%s", err)
+			return
+		}
 	}
 
-	//注册节点信息
-	register(speConfig)
-	//登记身份证书
-
-	enrollCert(ECert, speConfig)
-
-	//登记通讯证书
-	enrollCert(TlsCert, speConfig)
+	for _, value := range cryptoSys.OrdererOrgs {
+		if err := generateOrdererOrg(value); err != nil {
+			log.Printf("Failed to load nodes ,err=%s", err)
+			return
+		}
+	}
 }
 
 func RunSpeConfig() {
@@ -61,98 +59,130 @@ func RunSpeConfig() {
 		log.Fatalf("Failed to load SpeConfig ,err=%s", err)
 		return
 	}
-	//注册节点信息
-	register(speConfig)
-	//登记身份证书
-
-	enrollCert(ECert, speConfig)
-
-	//登记通讯证书
-	enrollCert(TlsCert, speConfig)
-}
-
-func register(speConfig *config.SpeConfig) {
 	for _, value := range speConfig.Nodes {
-		//加载ca客户端
-		client, err := loach.NewClient(value.CaFile)
-		if err != nil {
-			log.Fatalf("Failed to load ca client ,err=%s", err)
-			continue
-		}
-
-		var attrs []model.RegisterAttribute
-		for _, value := range value.Register.Attrs {
-			attrs = append(attrs, model.RegisterAttribute{
-				Name:  value.Name,
-				Value: value.Value,
-				ECert: value.ECert,
-			})
-		}
-
-		request := &model.RegisterRequest{
-			EnrollID:       value.Name,
-			Type:           value.Register.Type,
-			Secret:         value.Register.Secret,
-			MaxEnrollments: value.Register.MaxEnrollments,
-			Affiliation:    value.Register.Affiliation,
-			Attrs:          attrs,
-		}
-		response, err := client.Register(request)
-		if err != nil {
-			log.Printf("Register %s Failed,because err=%s", value.Name, err)
-		} else {
-			if !response.Success || len(response.Errors) > 0 {
-				log.Printf("Register %s Failed,because err=%s", value.Name, response.Error())
-			}
-			log.Printf("Register %s success,password=%s", value.Name, response.Result.Secret)
-		}
+		register(value)
+		enrollCert(ECert, value)
+		enrollCert(TlsCert, value)
 	}
 }
 
-func enrollCert(certType CertType, speConfig *config.SpeConfig) {
-	for _, value := range speConfig.Nodes {
+func generatePeerOrg(peerOrg node.PeerOrg) error {
+	//generate Admin
+	register(peerOrg.Admin)
+	enrollCert(ECert, peerOrg.Admin)
+	enrollCert(TlsCert, peerOrg.Admin)
+	//generate Users
+	for _, value := range peerOrg.Users {
+		register(value)
+		enrollCert(ECert, value)
+		enrollCert(TlsCert, value)
+	}
+	//generate Peers
+	for _, value := range peerOrg.Peers {
+		register(value)
+		enrollCert(ECert, value)
+		enrollCert(TlsCert, value)
+	}
+	return nil
+}
 
-		//加载ca客户端
-		client, err := loach.NewClient(value.CaFile)
-		if err != nil {
-			log.Fatalf("Failed to load ca client ,err=%s", err)
-			continue
+func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
+	//generate Admin
+	register(ordererOrg.Admin)
+	enrollCert(ECert, ordererOrg.Admin)
+	enrollCert(TlsCert, ordererOrg.Admin)
+	//generate Orderers
+	for _, value := range ordererOrg.Orderers {
+		register(value)
+		enrollCert(ECert, value)
+		enrollCert(TlsCert, value)
+	}
+	return nil
+}
+
+func register(value config.NodeConfig) error {
+	//加载ca客户端
+	client, err := loach.NewClient(value.CaFile)
+	if err != nil {
+		log.Fatalf("Failed to load ca client ,err=%s", err)
+		return err
+	}
+
+	var attrs []model.RegisterAttribute
+	for _, value := range value.Register.Attrs {
+		attrs = append(attrs, model.RegisterAttribute{
+			Name:  value.Name,
+			Value: value.Value,
+			ECert: value.ECert,
+		})
+	}
+
+	request := &model.RegisterRequest{
+		EnrollID:       value.Name,
+		Type:           value.Register.Type,
+		Secret:         value.Register.Secret,
+		MaxEnrollments: value.Register.MaxEnrollments,
+		Affiliation:    value.Register.Affiliation,
+		Attrs:          attrs,
+	}
+	response, err := client.Register(request)
+	if err != nil {
+		log.Printf("Register %s Failed,because err=%s", value.Name, err)
+		return err
+	} else {
+		if !response.Success || len(response.Errors) > 0 {
+			log.Printf("Register %s Failed,because err=%s", value.Name, response.Error())
+			return response.Error()
 		}
+		log.Printf("Register %s success,password=%s", value.Name, response.Result.Secret)
+	}
+	return nil
+}
 
-		request := &model.EnrollRequest{
-			EnrollID: value.Enroll.EnrollID,
-			Secret:   value.Enroll.Secret,
-			Profile:  "tls",
-			Name: pkix.Name{
-				Country:            []string{value.Enroll.Subject.Country},
-				Province:           []string{value.Enroll.Subject.Province},
-				Locality:           []string{value.Enroll.Subject.Locality},
-				Organization:       []string{value.Enroll.Subject.Organization},
-				OrganizationalUnit: []string{value.Enroll.Subject.OrganizationalUnit},
-				CommonName:         value.Enroll.EnrollID,
-			},
-		}
+func enrollCert(certType CertType, value config.NodeConfig) error {
 
-		if certType == TlsCert {
-			request.Profile = "tls"
-		}
+	//加载ca客户端
+	client, err := loach.NewClient(value.CaFile)
+	if err != nil {
+		log.Fatalf("Failed to load ca client ,err=%s", err)
+		return err
+	}
 
-		response, err := client.Enroll(request)
+	request := &model.EnrollRequest{
+		EnrollID: value.Enroll.EnrollID,
+		Secret:   value.Enroll.Secret,
+		Profile:  "tls",
+		Name: pkix.Name{
+			Country:            []string{value.Enroll.Subject.Country},
+			Province:           []string{value.Enroll.Subject.Province},
+			Locality:           []string{value.Enroll.Subject.Locality},
+			Organization:       []string{value.Enroll.Subject.Organization},
+			OrganizationalUnit: []string{value.Enroll.Subject.OrganizationalUnit},
+			CommonName:         value.Enroll.EnrollID,
+		},
+	}
+
+	if certType == TlsCert {
+		request.Profile = "tls"
+	}
+
+	response, err := client.Enroll(request)
+	if err != nil {
+		log.Printf("Failed Enroll %s,err=%s", value.Name, err)
+		return err
+	} else {
+		key, cert, err := model.SplitIdentity(response.Identity)
+		ski := response.Identity.Ski
 		if err != nil {
 			log.Printf("Failed Enroll %s,err=%s", value.Name, err)
-		} else {
-			key, cert, err := model.SplitIdentity(response.Identity)
-			ski := response.Identity.Ski
-			if err != nil {
-				log.Printf("Failed Enroll %s,err=%s", value.Name, err)
-				return
-			}
-			chain := model.CertToString(response.CertChain)
-			log.Printf("Succeed to Enroll %s", value.Name)
-			_, caName := client.GetServer()
-			SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
+			return err
 		}
+		chain := model.CertToString(response.CertChain)
+		log.Printf("Succeed to Enroll %s", value.Name)
+		_, caName := client.GetServer()
+		SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
 	}
+	return nil
 }
 
 func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cert, chain string) {

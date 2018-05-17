@@ -8,6 +8,22 @@ import (
 	"github.com/learnergo/cuttle/constant"
 )
 
+type CryptoSys struct {
+	PeerOrgs    []PeerOrg
+	OrdererOrgs []OrdererOrg
+}
+
+type PeerOrg struct {
+	Peers []config.NodeConfig
+	Admin config.NodeConfig
+	Users []config.NodeConfig
+}
+
+type OrdererOrg struct {
+	Orderers []config.NodeConfig
+	Admin    config.NodeConfig
+}
+
 type Node struct {
 	Name    string
 	CaFile  string
@@ -17,7 +33,7 @@ type Node struct {
 	OrgName string
 }
 
-func NewNode(path string) ([]Node, error) {
+func NewNode(path string) (*CryptoSys, error) {
 	cConfig, err := config.NewCryptoConfig(path)
 	if err != nil {
 		return nil, err
@@ -26,10 +42,13 @@ func NewNode(path string) ([]Node, error) {
 	return parseConfigToNodes(cConfig)
 }
 
-func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
-	var nodes []Node
+func parseConfigToNodes(cConfig *config.CryptoConfig) (*CryptoSys, error) {
+
+	cryptoSys := &CryptoSys{}
+
 	//解析orderer
 	for _, value := range cConfig.OrdererOrgs {
+		ordererOrg := OrdererOrg{}
 		for _, o := range value.Specs {
 			n := Node{}
 			n.Name = fmt.Sprintf("%s.%s", o.Hostname, value.Domain)
@@ -42,10 +61,14 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getOrdererOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
-			nodes = append(nodes, n)
+			v, err := parseNodeToNodeConfig(n)
+			if err != nil {
+				return nil, err
+			}
+			ordererOrg.Orderers = append(ordererOrg.Orderers, v)
 		}
-		//orderer 默认加一个Admin和User1
-		for _, item := range []string{"Admin", "User1"} {
+		//orderer 默认加一个Admin
+		for _, item := range []string{"Admin"} {
 			n := Node{}
 			n.Name = fmt.Sprintf("%s@%s", item, value.Domain)
 			if item == "Admin" {
@@ -57,12 +80,18 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getOrdererOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
-			nodes = append(nodes, n)
+			v, err := parseNodeToNodeConfig(n)
+			if err != nil {
+				return nil, err
+			}
+			ordererOrg.Admin = v
 		}
+		cryptoSys.OrdererOrgs = append(cryptoSys.OrdererOrgs, ordererOrg)
 	}
 
 	//解析peer
 	for _, value := range cConfig.PeerOrgs {
+		peerOrg := PeerOrg{}
 		peers := getPeers(value.Specs, &value.Template, value.Domain)
 		for _, p := range peers {
 			n := Node{}
@@ -72,7 +101,11 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getPeerOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
-			nodes = append(nodes, n)
+			v, err := parseNodeToNodeConfig(n)
+			if err != nil {
+				return nil, err
+			}
+			peerOrg.Peers = append(peerOrg.Peers, v)
 		}
 
 		u := []string{"Admin"}
@@ -90,11 +123,20 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) ([]Node, error) {
 			n.Subject = getSubject(&cConfig.Subject, n.Name)
 			n.Output = getPeerOutput(n.Name, value.Domain, n.Type, cConfig.Output)
 			n.OrgName = value.Name
-			nodes = append(nodes, n)
+			v, err := parseNodeToNodeConfig(n)
+			if err != nil {
+				return nil, err
+			}
+			if item == "Admin" {
+				peerOrg.Admin = v
+			} else {
+				peerOrg.Users = append(peerOrg.Users, v)
+			}
 		}
+		cryptoSys.PeerOrgs = append(cryptoSys.PeerOrgs, peerOrg)
 	}
 
-	return nodes, nil
+	return cryptoSys, nil
 }
 
 func getSubject(subject *config.Subject, commonName string) *pkix.Name {
@@ -167,38 +209,33 @@ func getUsers(count int) []string {
 	return nil
 }
 
-func ParseNodesToSpeConfig(nodes []Node) (*config.SpeConfig, error) {
-	speConfig := new(config.SpeConfig)
+func parseNodeToNodeConfig(value Node) (config.NodeConfig, error) {
 
-	for _, value := range nodes {
-		nodeConfig := config.NodeConfig{
-			Name:   value.Name,
-			CaFile: value.CaFile,
-			Output: value.Output,
-			Register: config.RegisterConfig{
-				Registered:     false,
-				EnrollID:       value.Name,
-				Type:           string([]byte(value.Type)),
-				Secret:         "adminpwd",
-				MaxEnrollments: -1,
-				Affiliation:    ".",
-				Attrs: []config.AttrsConfig{config.AttrsConfig{
-					Name:  "hf.Registrar.Roles",
-					Value: string([]byte(value.Type)),
-				}, config.AttrsConfig{
-					Name:  "hf.Revoker",
-					Value: "false",
-				}},
-			},
-			Enroll: config.EnrollConfig{
-				EnrollID: value.Name,
-				Secret:   "adminpwd",
-				Subject:  ParseSubject(value.Subject),
-			},
-		}
-		speConfig.Nodes = append(speConfig.Nodes, nodeConfig)
-	}
-	return speConfig, nil
+	return config.NodeConfig{
+		Name:   value.Name,
+		CaFile: value.CaFile,
+		Output: value.Output,
+		Register: config.RegisterConfig{
+			Registered:     false,
+			EnrollID:       value.Name,
+			Type:           string([]byte(value.Type)),
+			Secret:         "adminpwd",
+			MaxEnrollments: -1,
+			Affiliation:    ".",
+			Attrs: []config.AttrsConfig{config.AttrsConfig{
+				Name:  "hf.Registrar.Roles",
+				Value: string([]byte(value.Type)),
+			}, config.AttrsConfig{
+				Name:  "hf.Revoker",
+				Value: "false",
+			}},
+		},
+		Enroll: config.EnrollConfig{
+			EnrollID: value.Name,
+			Secret:   "adminpwd",
+			Subject:  ParseSubject(value.Subject),
+		},
+	}, nil
 }
 
 func ParseSubject(subject *pkix.Name) config.Subject {

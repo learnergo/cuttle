@@ -1,3 +1,6 @@
+/**
+cuttle.yaml 文件对应解析，也是证书注册 登记的直接操作对象
+**/
 package config
 
 import (
