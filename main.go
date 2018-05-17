@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/hex"
 	_ "io/ioutil"
 	"log"
 	_ "os"
@@ -172,7 +176,7 @@ func enrollCert(certType CertType, value config.NodeConfig) error {
 		return err
 	} else {
 		key, cert, err := model.SplitIdentity(response.Identity)
-		ski := response.Identity.Ski
+		ski := getSki(response.Identity.Key)
 		if err != nil {
 			log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 			return err
@@ -226,6 +230,17 @@ func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cer
 		utils.SaveFile(chain, tlsChainPath+"/"+caName+"-cert.pem")
 	case CaCert:
 	}
+}
+
+func getSki(key interface{}) string {
+	priKey := key.(*ecdsa.PrivateKey)
+	raw := elliptic.Marshal(priKey.Curve, priKey.X, priKey.Y)
+
+	// Hash it
+	hash := sha256.New()
+	hash.Write(raw)
+
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 //func ArrangeFiles(basePath string) {

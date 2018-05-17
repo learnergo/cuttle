@@ -15,7 +15,6 @@ import (
 type Identity struct {
 	Key  interface{}
 	Cert *x509.Certificate
-	Ski  string
 }
 
 func MarshalIdentity(identity *Identity) (string, error) {

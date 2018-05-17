@@ -1,14 +1,10 @@
 package invoke
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 
@@ -77,15 +73,4 @@ func stringToAlgorithm(data string) (x509.SignatureAlgorithm, error) {
 		return 0, errors.New("Error algorithm")
 	}
 	return result, nil
-}
-
-func getSki(key interface{}) string {
-	priKey := key.(*ecdsa.PrivateKey)
-	raw := elliptic.Marshal(priKey.Curve, priKey.X, priKey.Y)
-
-	// Hash it
-	hash := sha256.New()
-	hash.Write(raw)
-
-	return hex.EncodeToString(hash.Sum(nil))
 }
