@@ -7,10 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/hex"
-	"io"
 	"log"
-	"os"
-	"path"
 
 	"github.com/learnergo/cuttle/config"
 	"github.com/learnergo/cuttle/node"
@@ -100,8 +97,12 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 		return err
 	}
 	//复制admin文件
-	err = copyFile(sourceTarget, peerOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+	utils.CopyFile(sourceTarget, peerOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
 
+	//创建org msp
+	utils.CopyDir(peerOrg.Admin.Output+"/"+"msp"+"/"+"admincerts", peerOrg.RootPath+"/"+"admincerts")
+	utils.CopyDir(peerOrg.Admin.Output+"/"+"msp"+"/"+"cacerts", peerOrg.RootPath+"/"+"cacerts")
+	utils.CopyDir(peerOrg.Admin.Output+"/"+"msp"+"/"+"tlscacerts", peerOrg.RootPath+"/"+"tlscacerts")
 	//generate Users
 	for _, value := range peerOrg.Users {
 		//注册
@@ -112,7 +113,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 			return err
 		}
 		//复制admin文件
-		err = copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		err = utils.CopyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
 		if err != nil {
 			return err
 		}
@@ -132,7 +133,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 			return err
 		}
 		//复制admin文件
-		err = copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		err = utils.CopyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
 		if err != nil {
 			return err
 		}
@@ -158,13 +159,15 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 	if err != nil {
 		return err
 	}
-	//复制admin文件
-	copyFile(sourceTarget, ordererOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
-
 	err = enrollCert(TlsCert, ordererOrg.Admin)
 	if err != nil {
 		return err
 	}
+	//复制admin文件
+	utils.CopyFile(sourceTarget, ordererOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+	utils.CopyDir(ordererOrg.Admin.Output+"/"+"msp"+"/"+"cacerts", ordererOrg.RootPath+"/"+"cacerts")
+	utils.CopyDir(ordererOrg.Admin.Output+"/"+"msp"+"/"+"tlscacerts", ordererOrg.RootPath+"/"+"tlscacerts")
+
 	//generate Orderers
 	for _, value := range ordererOrg.Orderers {
 		//注册
@@ -175,7 +178,7 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 			return err
 		}
 		//复制admin文件
-		copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		utils.CopyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
 		//登记tlscert
 		err = enrollCert(TlsCert, value)
 		if err != nil {
@@ -285,7 +288,7 @@ func saveIdentity(certType CertType, keyName, certName, caName, outPut, key, cer
 		outPut += "/" + "msp"
 		//保存私钥
 		keyPath := outPut + "/" + "keystore"
-		utils.SaveFile(key, keyPath+"/"+keyName+".key")
+		utils.SaveFile(key, keyPath+"/"+keyName)
 
 		//保存证书
 		certPath := outPut + "/" + "signcerts"
@@ -324,34 +327,3 @@ func getSki(key interface{}) string {
 
 	return hex.EncodeToString(hash.Sum(nil))
 }
-
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	dir := path.Dir(dst)
-	utils.Mkdir(dir)
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	cerr := out.Close()
-	if err != nil {
-		return err
-	}
-	return cerr
-}
-
-//func ArrangeFiles(basePath string) {
-//	files, err := ioutil.ReadDir(basePath)
-//	if err != nil {
-//		log.Printf("Failed to read %s dir,err=%s", basePath, err)
-//	}
-//	for _, value := range files {
-
-//	}
-//}

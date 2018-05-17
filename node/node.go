@@ -14,12 +14,14 @@ type CryptoSys struct {
 }
 
 type PeerOrg struct {
-	Peers []config.NodeConfig
-	Admin config.NodeConfig
-	Users []config.NodeConfig
+	RootPath string
+	Peers    []config.NodeConfig
+	Admin    config.NodeConfig
+	Users    []config.NodeConfig
 }
 
 type OrdererOrg struct {
+	RootPath string
 	Orderers []config.NodeConfig
 	Admin    config.NodeConfig
 }
@@ -65,6 +67,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) (*CryptoSys, error) {
 			if err != nil {
 				return nil, err
 			}
+			//ordererOrg.RootPath=rootPath
 			ordererOrg.Orderers = append(ordererOrg.Orderers, v)
 		}
 		//orderer 默认加一个Admin
@@ -84,6 +87,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) (*CryptoSys, error) {
 			if err != nil {
 				return nil, err
 			}
+			ordererOrg.RootPath = getOrdererRootPath(value.Domain, cConfig.Output)
 			ordererOrg.Admin = v
 		}
 		cryptoSys.OrdererOrgs = append(cryptoSys.OrdererOrgs, ordererOrg)
@@ -132,6 +136,7 @@ func parseConfigToNodes(cConfig *config.CryptoConfig) (*CryptoSys, error) {
 			} else {
 				peerOrg.Users = append(peerOrg.Users, v)
 			}
+			peerOrg.RootPath = getPeerRootPath(value.Domain, cConfig.Output)
 		}
 		cryptoSys.PeerOrgs = append(cryptoSys.PeerOrgs, peerOrg)
 	}
@@ -164,6 +169,14 @@ func getOrdererOutput(name string, domain string, nodeType constant.NodeType, ba
 	return fmt.Sprintf("%s/%s/%s/%s/%s", path0, path1, path2, path3, path4)
 }
 
+func getOrdererRootPath(domain string, basePath string) string {
+	path0 := basePath
+	path1 := "ordererOrganizations"
+	path2 := domain
+	path3 := "msp"
+	return fmt.Sprintf("%s/%s/%s/%s", path0, path1, path2, path3)
+}
+
 func getPeerOutput(name string, domain string, nodeType constant.NodeType, basePath string) string {
 	path0 := basePath
 	path1 := "peerOrganizations"
@@ -176,6 +189,14 @@ func getPeerOutput(name string, domain string, nodeType constant.NodeType, baseP
 	}
 	path4 := name
 	return fmt.Sprintf("%s/%s/%s/%s/%s", path0, path1, path2, path3, path4)
+}
+
+func getPeerRootPath(domain string, basePath string) string {
+	path0 := basePath
+	path1 := "peerOrganizations"
+	path2 := domain
+	path3 := "msp"
+	return fmt.Sprintf("%s/%s/%s/%s", path0, path1, path2, path3)
 }
 
 func getPeers(specs []config.Spec, temp *config.Template, domain string) []string {
