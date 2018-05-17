@@ -1,4 +1,4 @@
-url: http://192.168.5.136:6054
+url: http://127.0.0.1:7054
 server_Name: tlsca.example.com
 admin_key: static/admin.key
 admin_cert: static/admin.crt
