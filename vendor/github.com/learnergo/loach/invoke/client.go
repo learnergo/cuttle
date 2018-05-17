@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 type clientImpl struct {
 	Url        string
 	ServerName string
+	Profile    string
 	Algorithm  string
 	Crypto     crypto.Crypto
 	AdminKey   string
@@ -34,6 +36,10 @@ func (client *clientImpl) GetServer() (string, string) {
 	return client.Url, client.ServerName
 }
 
+func (client *clientImpl) GetProfile() string {
+	return client.Profile
+}
+
 func (client *clientImpl) Register(request *model.RegisterRequest) (*model.RegisterResponse, error) {
 	return register(client, request)
 }
@@ -42,15 +48,52 @@ func (client *clientImpl) Enroll(request *model.EnrollRequest) (*model.EnrollRes
 	return enroll(client, request)
 }
 
-func NewClient(c crypto.Crypto, config *config.ClientConfig) (model.Client, error) {
-	return &clientImpl{
-		Url:        config.Url,
-		ServerName: config.ServerName,
+func NewClients(config *config.ClientConfig) (model.Clients, error) {
+	clients := model.Clients{}
+	//初始化ECertClient
+	c, err := getCrypto(config.ECertClient.CryptoConfig)
+	if err != nil {
+		return clients, err
+	}
+
+	clients.ECertClient = &clientImpl{
+		Url:        config.ECertClient.Url,
+		ServerName: config.ECertClient.ServerName,
+		Profile:    config.ECertClient.Profile,
 		Crypto:     c,
-		Algorithm:  config.Algorithm,
-		AdminKey:   config.AdminKey,
-		AdminCert:  config.AdminCert,
-	}, nil
+		Algorithm:  config.ECertClient.Algorithm,
+		AdminKey:   config.ECertClient.AdminKey,
+		AdminCert:  config.ECertClient.AdminCert,
+	}
+	//初始化TlsCertClient
+	c, err = getCrypto(config.TlsCertClient.CryptoConfig)
+	if err != nil {
+		return clients, err
+	}
+
+	clients.TlsCertClient = &clientImpl{
+		Url:        config.TlsCertClient.Url,
+		ServerName: config.TlsCertClient.ServerName,
+		Profile:    config.TlsCertClient.Profile,
+		Crypto:     c,
+		Algorithm:  config.TlsCertClient.Algorithm,
+		AdminKey:   config.TlsCertClient.AdminKey,
+		AdminCert:  config.TlsCertClient.AdminCert,
+	}
+	return clients, nil
+}
+
+func getCrypto(cc config.CryptoConfig) (crypto.Crypto, error) {
+	switch cc.Family {
+	case "ecdsa":
+		c, err := crypto.NewCrypto(cc)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	default:
+		return nil, errors.New("Error Crypto")
+	}
 }
 
 func (client *clientImpl) createAuthToken(identity *model.Identity, request []byte) (string, error) {

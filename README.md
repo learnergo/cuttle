@@ -34,9 +34,10 @@ go get -u learnergo/cuttle
 ```
 static\crypto-config.yaml 文件仿照fabric中crypto-config.yaml文件，但不同的在于每个组织需要制定各自根ca的配置文件，并且在Subject中定义通用Subject属性
 
+static\ca.yaml ecert配置负责颁发ecert，tlscert配置负责颁发tlscert
+
 static\cuttle.yaml 文件则用于颁发特定证书，配置register和enroll各个细节
 
-static\ca.yaml 文件配置ca信息，包括url和管理员证书
 ```
 
 ### 运行方式
@@ -52,6 +53,6 @@ main函数中
 
 
 ```
-现在是基于一个根ca，颁发所有相关证书，后续会配置多个ca
+提供基于容器的ca服务快速搭建脚本
 ```
 

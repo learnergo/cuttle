@@ -1,8 +1,21 @@
-url: http://192.168.5.136:6054
-server_Name: ca.example.com
-admin_key: static/admin.key
-admin_cert: static/admin.crt
-crypto:
-  family: ecdsa
-  algorithm: P256-SHA256
-  hash: SHA2-256
+ecert:
+  url: http://192.168.5.136:6054
+  profile: 
+  server_Name: tlsca.example.com
+  admin_key: static/admin.key
+  admin_cert: static/admin.crt
+  crypto:
+    family: ecdsa
+    algorithm: P256-SHA256
+    hash: SHA2-256
+
+tlscert:
+  url: http://192.168.5.136:6054
+  profile: tls
+  server_Name: tlsca.example.com
+  admin_key: static/admin.key
+  admin_cert: static/admin.crt
+  crypto:
+    family: ecdsa
+    algorithm: P256-SHA256
+    hash: SHA2-256

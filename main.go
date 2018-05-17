@@ -62,17 +62,16 @@ func RunSpeConfig() {
 		return
 	}
 	for _, value := range speConfig.Nodes {
-		register(value)
+		clients, err := loach.NewClients(value.CaFile)
 
-		err = enrollCert(ECert, value)
+		//generate ECert
+		err = generateECert(clients.ECertClient, value)
 		if err != nil {
-			log.Fatalf("Failed to enroll ECert ,err=%s", err)
 			return
 		}
-
-		err = enrollCert(TlsCert, value)
+		//generate TlsCert
+		err = generateTlsCert(clients.TlsCertClient, value)
 		if err != nil {
-			log.Fatalf("Failed to lenroll TlsCert ,err=%s", err)
 			return
 		}
 	}
@@ -80,22 +79,28 @@ func RunSpeConfig() {
 
 func generatePeerOrg(peerOrg node.PeerOrg) error {
 
+	//加载ca客户端
+	clients, err := loach.NewClients(peerOrg.Admin.CaFile)
+	if err != nil {
+		log.Fatalf("Failed to load ca client ,err=%s", err)
+		return err
+	}
+
 	//copy Admin
 	sourceTarget := peerOrg.Admin.Output + "/" + "msp" + "/" + "signcerts" + "/" + peerOrg.Admin.Enroll.EnrollID + "-cert.pem"
 
 	//generate Admin
-	//注册
-	register(peerOrg.Admin)
-	//登记cert
-	err := enrollCert(ECert, peerOrg.Admin)
+	//generate ECert
+	err = generateECert(clients.ECertClient, peerOrg.Admin)
 	if err != nil {
 		return err
 	}
-	//登记tls cert
-	err = enrollCert(TlsCert, peerOrg.Admin)
+	//generate TlsCert
+	err = generateTlsCert(clients.TlsCertClient, peerOrg.Admin)
 	if err != nil {
 		return err
 	}
+
 	//复制admin文件
 	utils.CopyFile(sourceTarget, peerOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
 
@@ -105,10 +110,9 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 	utils.CopyDir(peerOrg.Admin.Output+"/"+"msp"+"/"+"tlscacerts", peerOrg.RootPath+"/"+"tlscacerts")
 	//generate Users
 	for _, value := range peerOrg.Users {
-		//注册
-		register(value)
-		//登记ecert
-		err = enrollCert(ECert, value)
+
+		//generate ECert
+		err = generateECert(clients.ECertClient, value)
 		if err != nil {
 			return err
 		}
@@ -117,18 +121,17 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 		if err != nil {
 			return err
 		}
-		//登记tlscert
-		err = enrollCert(TlsCert, value)
+
+		//generate TlsCert
+		err := generateTlsCert(clients.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
 	}
 	//generate Peers
 	for _, value := range peerOrg.Peers {
-		//注册
-		register(value)
-		//登记ecert
-		err = enrollCert(ECert, value)
+		//generate ECert
+		err = generateECert(clients.ECertClient, value)
 		if err != nil {
 			return err
 		}
@@ -137,8 +140,9 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 		if err != nil {
 			return err
 		}
-		//登记tlscert
-		err = enrollCert(TlsCert, value)
+
+		//generate TlsCert
+		err := generateTlsCert(clients.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
@@ -148,18 +152,24 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 }
 
 func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
+	//加载ca客户端
+	clients, err := loach.NewClients(ordererOrg.Admin.CaFile)
+	if err != nil {
+		log.Fatalf("Failed to load ca client ,err=%s", err)
+		return err
+	}
+
 	//copy Admin
 	sourceTarget := ordererOrg.Admin.Output + "/" + "msp" + "/" + "signcerts" + "/" + ordererOrg.Admin.Enroll.EnrollID + "-cert.pem"
 
 	//generate Admin
-	//注册
-	register(ordererOrg.Admin)
-	//登记ecert
-	err := enrollCert(ECert, ordererOrg.Admin)
+	//generate ECert
+	err = generateECert(clients.ECertClient, ordererOrg.Admin)
 	if err != nil {
 		return err
 	}
-	err = enrollCert(TlsCert, ordererOrg.Admin)
+	//generate TlsCert
+	err = generateTlsCert(clients.TlsCertClient, ordererOrg.Admin)
 	if err != nil {
 		return err
 	}
@@ -173,17 +183,19 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 
 	//generate Orderers
 	for _, value := range ordererOrg.Orderers {
-		//注册
-		register(value)
-		//登记ecert
-		err = enrollCert(ECert, value)
+		//generate ECert
+		err = generateECert(clients.ECertClient, value)
 		if err != nil {
 			return err
 		}
 		//复制admin文件
-		utils.CopyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
-		//登记tlscert
-		err = enrollCert(TlsCert, value)
+		err = utils.CopyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		if err != nil {
+			return err
+		}
+
+		//generate TlsCert
+		err := generateTlsCert(clients.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
@@ -191,13 +203,17 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 	return nil
 }
 
-func register(value config.NodeConfig) error {
-	//加载ca客户端
-	client, err := loach.NewClient(value.CaFile)
-	if err != nil {
-		log.Fatalf("Failed to load ca client ,err=%s", err)
-		return err
-	}
+func generateECert(client model.Client, value config.NodeConfig) error {
+	register(client, value)
+	return enrollCert(client, ECert, value)
+}
+
+func generateTlsCert(client model.Client, value config.NodeConfig) error {
+	register(client, value)
+	return enrollCert(client, TlsCert, value)
+}
+
+func register(client model.Client, value config.NodeConfig) error {
 
 	var attrs []model.RegisterAttribute
 	for _, value := range value.Register.Attrs {
@@ -230,19 +246,12 @@ func register(value config.NodeConfig) error {
 	return nil
 }
 
-func enrollCert(certType CertType, value config.NodeConfig) error {
-
-	//加载ca客户端
-	client, err := loach.NewClient(value.CaFile)
-	if err != nil {
-		log.Fatalf("Failed to load ca client ,err=%s", err)
-		return err
-	}
+func enrollCert(client model.Client, certType CertType, value config.NodeConfig) error {
 
 	request := &model.EnrollRequest{
 		EnrollID: value.Enroll.EnrollID,
+		Profile:  client.GetProfile(),
 		Secret:   value.Enroll.Secret,
-		Profile:  "tls",
 		Name: pkix.Name{
 			Country:            []string{value.Enroll.Subject.Country},
 			Province:           []string{value.Enroll.Subject.Province},
@@ -253,12 +262,16 @@ func enrollCert(certType CertType, value config.NodeConfig) error {
 		},
 	}
 
-	if certType == TlsCert {
-		request.Profile = "tls"
-		request.Hosts = []string{value.Enroll.EnrollID}
-	}
+	var response *model.EnrollResponse
+	var caName string
 
+	if certType == TlsCert {
+		request.Hosts = []string{value.Enroll.EnrollID}
+
+	}
+	_, caName = client.GetServer()
 	response, err := client.Enroll(request)
+
 	if err != nil {
 		log.Printf("Failed Enroll %s,err=%s", value.Name, err)
 		return err
@@ -271,7 +284,7 @@ func enrollCert(certType CertType, value config.NodeConfig) error {
 		}
 		chain := model.CertToString(response.CertChain)
 		log.Printf("Succeed to Enroll %s", value.Name)
-		_, caName := client.GetServer()
+
 		saveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
 	}
 	return nil
