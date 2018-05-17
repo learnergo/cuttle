@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+	_ "net/url"
 
 	"github.com/learnergo/loach/constant"
 	"github.com/learnergo/loach/model"
@@ -63,11 +63,11 @@ func enroll(client *clientImpl, request *model.EnrollRequest) (*model.EnrollResp
 	}
 	var hosts []string
 	if len(request.Hosts) == 0 {
-		parsedUrl, err := url.Parse(client.Url)
-		if err != nil {
-			return nil, err
-		}
-		hosts = []string{parsedUrl.Host}
+		//parsedUrl, err := url.Parse(client.Url)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//hosts = []string{parsedUrl.Host}
 	} else {
 		hosts = request.Hosts
 	}

@@ -165,6 +165,9 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 	}
 	//复制admin文件
 	utils.CopyFile(sourceTarget, ordererOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+
+	//创建org msp
+	utils.CopyDir(ordererOrg.Admin.Output+"/"+"msp"+"/"+"admincerts", ordererOrg.RootPath+"/"+"admincerts")
 	utils.CopyDir(ordererOrg.Admin.Output+"/"+"msp"+"/"+"cacerts", ordererOrg.RootPath+"/"+"cacerts")
 	utils.CopyDir(ordererOrg.Admin.Output+"/"+"msp"+"/"+"tlscacerts", ordererOrg.RootPath+"/"+"tlscacerts")
 
@@ -252,6 +255,7 @@ func enrollCert(certType CertType, value config.NodeConfig) error {
 
 	if certType == TlsCert {
 		request.Profile = "tls"
+		request.Hosts = []string{value.Enroll.EnrollID}
 	}
 
 	response, err := client.Enroll(request)
