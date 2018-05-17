@@ -7,9 +7,10 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/hex"
-	_ "io/ioutil"
+	"io"
 	"log"
-	_ "os"
+	"os"
+	"path"
 
 	"github.com/learnergo/cuttle/config"
 	"github.com/learnergo/cuttle/node"
@@ -65,41 +66,121 @@ func RunSpeConfig() {
 	}
 	for _, value := range speConfig.Nodes {
 		register(value)
-		enrollCert(ECert, value)
-		enrollCert(TlsCert, value)
+
+		err = enrollCert(ECert, value)
+		if err != nil {
+			log.Fatalf("Failed to enroll ECert ,err=%s", err)
+			return
+		}
+
+		err = enrollCert(TlsCert, value)
+		if err != nil {
+			log.Fatalf("Failed to lenroll TlsCert ,err=%s", err)
+			return
+		}
 	}
 }
 
 func generatePeerOrg(peerOrg node.PeerOrg) error {
+
+	//copy Admin
+	sourceTarget := peerOrg.Admin.Output + "/" + "msp" + "/" + "signcerts" + "/" + peerOrg.Admin.Enroll.EnrollID + "-cert.pem"
+
 	//generate Admin
+	//注册
 	register(peerOrg.Admin)
-	enrollCert(ECert, peerOrg.Admin)
-	enrollCert(TlsCert, peerOrg.Admin)
+	//登记cert
+	err := enrollCert(ECert, peerOrg.Admin)
+	if err != nil {
+		return err
+	}
+	//登记tls cert
+	err = enrollCert(TlsCert, peerOrg.Admin)
+	if err != nil {
+		return err
+	}
+	//复制admin文件
+	err = copyFile(sourceTarget, peerOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+
 	//generate Users
 	for _, value := range peerOrg.Users {
+		//注册
 		register(value)
-		enrollCert(ECert, value)
-		enrollCert(TlsCert, value)
+		//登记ecert
+		err = enrollCert(ECert, value)
+		if err != nil {
+			return err
+		}
+		//复制admin文件
+		err = copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		if err != nil {
+			return err
+		}
+		//登记tlscert
+		err = enrollCert(TlsCert, value)
+		if err != nil {
+			return err
+		}
 	}
 	//generate Peers
 	for _, value := range peerOrg.Peers {
+		//注册
 		register(value)
-		enrollCert(ECert, value)
-		enrollCert(TlsCert, value)
+		//登记ecert
+		err = enrollCert(ECert, value)
+		if err != nil {
+			return err
+		}
+		//复制admin文件
+		err = copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+peerOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		if err != nil {
+			return err
+		}
+		//登记tlscert
+		err = enrollCert(TlsCert, value)
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
 func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
+	//copy Admin
+	sourceTarget := ordererOrg.Admin.Output + "/" + "msp" + "/" + "signcerts" + "/" + ordererOrg.Admin.Enroll.EnrollID + "-cert.pem"
+
 	//generate Admin
+	//注册
 	register(ordererOrg.Admin)
-	enrollCert(ECert, ordererOrg.Admin)
-	enrollCert(TlsCert, ordererOrg.Admin)
+	//登记ecert
+	err := enrollCert(ECert, ordererOrg.Admin)
+	if err != nil {
+		return err
+	}
+	//复制admin文件
+	copyFile(sourceTarget, ordererOrg.Admin.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+
+	err = enrollCert(TlsCert, ordererOrg.Admin)
+	if err != nil {
+		return err
+	}
 	//generate Orderers
 	for _, value := range ordererOrg.Orderers {
+		//注册
 		register(value)
-		enrollCert(ECert, value)
-		enrollCert(TlsCert, value)
+		//登记ecert
+		err = enrollCert(ECert, value)
+		if err != nil {
+			return err
+		}
+		//复制admin文件
+		copyFile(sourceTarget, value.Output+"/"+"msp"+"/"+"admincerts/"+ordererOrg.Admin.Enroll.EnrollID+"-cert.pem")
+		//登记tlscert
+		err = enrollCert(TlsCert, value)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -184,12 +265,12 @@ func enrollCert(certType CertType, value config.NodeConfig) error {
 		chain := model.CertToString(response.CertChain)
 		log.Printf("Succeed to Enroll %s", value.Name)
 		_, caName := client.GetServer()
-		SaveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
+		saveIdentity(certType, ski+"_sk", value.Enroll.EnrollID, caName, value.Output, key, cert, chain)
 	}
 	return nil
 }
 
-func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cert, chain string) {
+func saveIdentity(certType CertType, keyName, certName, caName, outPut, key, cert, chain string) {
 
 	keyData, _ := base64.StdEncoding.DecodeString(key)
 	key = string(keyData)
@@ -232,6 +313,7 @@ func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cer
 	}
 }
 
+//保持与cryptogen中key名称生成规则一致
 func getSki(key interface{}) string {
 	priKey := key.(*ecdsa.PrivateKey)
 	raw := elliptic.Marshal(priKey.Curve, priKey.X, priKey.Y)
@@ -241,6 +323,27 @@ func getSki(key interface{}) string {
 	hash.Write(raw)
 
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	dir := path.Dir(dst)
+	utils.Mkdir(dir)
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	cerr := out.Close()
+	if err != nil {
+		return err
+	}
+	return cerr
 }
 
 //func ArrangeFiles(basePath string) {
