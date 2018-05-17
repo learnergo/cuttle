@@ -180,20 +180,20 @@ func SaveIdentity(certType CertType, keyName, certName, caName, outPut, key, cer
 		chainPath := outPut + "/" + "cacerts"
 		utils.SaveFile(chain, chainPath+"/"+caName+"-cert.pem")
 
-		//保存tls证书链
-		tlsChainPath := outPut + "/" + "tlscacerts"
-		utils.SaveFile(chain, tlsChainPath+"/"+caName+"-cert.pem")
-
 	case TlsCert:
-		outPut += "/" + "tls"
+		tlsOutPut := outPut + "/" + "tls"
 		//保存私钥
-		utils.SaveFile(key, outPut+"/"+"server.key")
+		utils.SaveFile(key, tlsOutPut+"/"+"server.key")
 
 		//保存证书
-		utils.SaveFile(cert, outPut+"/"+"server.crt")
+		utils.SaveFile(cert, tlsOutPut+"/"+"server.crt")
 
 		//保存证书链
-		utils.SaveFile(chain, outPut+"/"+"ca.crt")
+		utils.SaveFile(chain, tlsOutPut+"/"+"ca.crt")
+
+		//保存tls证书链
+		tlsChainPath := outPut + "/" + "msp" + "/" + "tlscacerts"
+		utils.SaveFile(chain, tlsChainPath+"/"+caName+"-cert.pem")
 	case CaCert:
 	}
 }
