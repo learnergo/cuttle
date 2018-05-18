@@ -20,7 +20,7 @@ PeerOrgs:
     Users:
       Count: 1
 
-Output: D:/crypto-config
+Output: crypto-config
 
 Subject:
   Country: CN

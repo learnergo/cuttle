@@ -1,4 +1,4 @@
-package main
+package invoke
 
 import (
 	"github.com/learnergo/cuttle/config"

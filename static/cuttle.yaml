@@ -1,7 +1,7 @@
 Nodes:
   - Name: test.example.com
     CaFile: static/ca.yaml
-    Output: D:/crypto-config
+    Output: crypto-config
     Register:
       Registered: false # 是否已经注册过，如果已经注册过直接颁发证书
       EnrollID: test.example.com

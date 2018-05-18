@@ -13,6 +13,7 @@
 ```
 go get -u golang.org/x/crypto/sha3
 go get -u gopkg.in/yaml.v2
+go get -v github.com/spf13/cobra/cobra
 ```
 
 ### 安装
@@ -20,6 +21,9 @@ go get -u gopkg.in/yaml.v2
 
 ```
 go get -u learnergo/cuttle
+
+cd $GOPATH/src/github.com/learnergo/cuttle
+go build
 ```
 
 
@@ -43,9 +47,9 @@ static\cuttle.yaml 文件则用于颁发特定证书，配置register和enroll�
 ### 运行方式
 
 ```
-main函数中
-一键颁发：RunConfig
-特定颁发：RunSpeConfig
+- 一键颁发: ./cuttle gen all
+
+- 颁发特定证书：./cuttle gen some
 ```
 
 ### TODO
