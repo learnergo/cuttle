@@ -38,8 +38,6 @@ go build
 ```
 static\crypto-config.yaml 文件仿照fabric中crypto-config.yaml文件，但不同的在于每个组织需要制定各自根ca的配置文件，并且在Subject中定义通用Subject属性
 
-static\ca.yaml ecert配置负责颁发ecert，tlscert配置负责颁发tlscert
-
 static\cuttle.yaml 文件则用于颁发特定证书，配置register和enroll各个细节
 
 ```
@@ -47,15 +45,19 @@ static\cuttle.yaml 文件则用于颁发特定证书，配置register和enroll�
 ### 运行方式
 
 ```
+创建ca容器：
+cd $GOPATH/src/github.com/learnergo/cuttle/ca_setup
+./network_setup.sh up
+
 - 一键颁发: ./cuttle gen all
 
 - 颁发特定证书：./cuttle gen some
 ```
 
-### TODO
-
+### 注意
 
 ```
-提供基于容器的ca服务快速搭建脚本
+./network_setup.sh up 命令拉起ca容器，注意ca镜像用的v1.1.0版本
 ```
+
 

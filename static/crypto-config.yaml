@@ -1,19 +1,19 @@
 OrdererOrgs:
   - Name: Orderer
-    CaFile: static/ca.yaml
+    CaFile: static/orderer.yaml
     Domain: example.com
     Specs:
       - Hostname: orderer
 PeerOrgs:
   - Name: Org1
-    CaFile: static/ca.yaml
+    CaFile: static/org1.yaml
     Domain: org1.example.com
     Template:
       Count: 2
     Users:
       Count: 1
   - Name: Org2
-    CaFile: static/ca.yaml
+    CaFile: static/org2.yaml
     Domain: org2.example.com
     Template:
       Count: 2

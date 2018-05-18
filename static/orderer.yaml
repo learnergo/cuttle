@@ -1,0 +1,21 @@
+ecert:
+  url: http://127.0.0.1:7054
+  profile: 
+  server_Name: ca.example.com
+  admin_key: /home/hyperledger/Admins/ca.example.com/msp/keystore/key.pem
+  admin_cert: /home/hyperledger/Admins/ca.example.com/msp/signcerts/cert.pem
+  crypto:
+    family: ecdsa
+    algorithm: P256-SHA256
+    hash: SHA2-256
+
+tlscert:
+  url: http://127.0.0.1:7055
+  profile: tls
+  server_Name: tlsca.example.com
+  admin_key: /home/hyperledger/Admins/tlsca.example.com/msp/keystore/key.pem
+  admin_cert: /home/hyperledger/Admins/tlsca.example.com/msp/signcerts/cert.pem
+  crypto:
+    family: ecdsa
+    algorithm: P256-SHA256
+    hash: SHA2-256

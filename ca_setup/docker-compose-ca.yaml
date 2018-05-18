@@ -1,0 +1,110 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+services:
+
+#orderer eca and tlsca
+  ca.example.com:
+    image: hyperledger/fabric-ca
+    container_name: ca.example.com
+    environment:
+      - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+      - FABRIC_CA_SERVER_CA_NAME=ca.example.com
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  tlsca.example.com:
+    image: hyperledger/fabric-ca
+    container_name: tlsca.example.com
+    environment:
+      - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+      - FABRIC_CA_SERVER_CA_NAME=tlsca.example.com
+    ports:
+      - "7055:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+#org1 eca and tlsca
+  ca.org1.example.com:
+    image: hyperledger/fabric-ca
+    container_name: ca.org1.example.com
+    environment:
+      - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+      - FABRIC_CA_SERVER_CA_NAME=ca.org1.example.com
+    ports:
+      - "8054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  tlsca.org1.example.com:
+    image: hyperledger/fabric-ca
+    container_name: tlsca.org1.example.com
+    environment:
+     - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+     - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+     - FABRIC_CA_SERVER_CA_NAME=tlsca.org1.example.com
+    ports:
+      - "8055:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+#org2 eca and tlsca
+  ca.org2.example.com:
+    image: hyperledger/fabric-ca
+    container_name: ca.org2.example.com
+    environment:
+      - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+      - FABRIC_CA_SERVER_CA_NAME=ca.org2.example.com
+    ports:
+      - "9054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  tlsca.org2.example.com:
+    image: hyperledger/fabric-ca
+    container_name: tlsca.org2.example.com
+    environment:
+      - FABRIC_CA_SERVER_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-client
+      - FABRIC_CA_SERVER_CA_NAME=tlsca.org2.example.com
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    ports:
+      - "9055:7054"
+    volumes:
+      - ./fabric-ca-server-config.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+#for fabric-ca-client 
+  fabric.ca.client:
+    image: hyperledger/fabric-ca
+    container_name: fabric.ca.client
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_CA_SERVER_CA_NAME=fabric.ca.client
+    command: sh -c './scripts/script.sh'
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    volumes:
+      - /var/run/:/host/var/run/
+      - /home/hyperledger:/etc/hyperledger/fabric-ca-client
+      - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/scripts
+    depends_on:
+      - ca.example.com
+      - tlsca.example.com
+      - ca.org1.example.com
+      - tlsca.org1.example.com
+      - ca.org2.example.com
+      - tlsca.org2.example.com

@@ -37,14 +37,14 @@ func RunConfig() {
 
 	for _, value := range cryptoSys.PeerOrgs {
 		if err := generatePeerOrg(value); err != nil {
-			log.Printf("Failed to load nodes ,err=%s", err)
+			log.Printf("Failed to generatePeerOrg ,err=%s", err)
 			return
 		}
 	}
 
 	for _, value := range cryptoSys.OrdererOrgs {
 		if err := generateOrdererOrg(value); err != nil {
-			log.Printf("Failed to load nodes ,err=%s", err)
+			log.Printf("Failed to generateOrdererOrg ,err=%s", err)
 			return
 		}
 	}
@@ -209,7 +209,6 @@ func generateTlsCert(client model.Client, value config.NodeConfig) error {
 }
 
 func register(client model.Client, value config.NodeConfig) error {
-
 	var attrs []model.RegisterAttribute
 	for _, value := range value.Register.Attrs {
 		attrs = append(attrs, model.RegisterAttribute{
