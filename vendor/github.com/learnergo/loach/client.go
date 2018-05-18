@@ -6,12 +6,16 @@ import (
 	"github.com/learnergo/loach/model"
 )
 
-func NewClients(path string) (model.Clients, error) {
+func NewClient(path string) (model.Client, error) {
 
 	config, err := config.NewClientConfig(path)
 	if err != nil {
-		return model.Clients{}, err
+		return nil, err
 	}
 
-	return invoke.NewClients(config)
+	return invoke.NewClient(config)
+}
+
+func NewClientFromConfig(config *config.ClientConfig) (model.Client, error) {
+	return invoke.NewClient(config)
 }

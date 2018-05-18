@@ -42,7 +42,6 @@ static\cuttle.yaml 文件则用于颁发特定证书，配置register和enroll�
 
 ### 运行方式
 
-
 ```
 main函数中
 一键颁发：RunConfig

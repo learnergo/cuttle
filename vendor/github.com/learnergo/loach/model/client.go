@@ -11,8 +11,3 @@ type Client interface {
 	Register(*RegisterRequest) (*RegisterResponse, error)
 	Enroll(*EnrollRequest) (*EnrollResponse, error)
 }
-
-type Clients struct {
-	ECertClient   Client
-	TlsCertClient Client
-}

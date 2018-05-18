@@ -48,39 +48,22 @@ func (client *clientImpl) Enroll(request *model.EnrollRequest) (*model.EnrollRes
 	return enroll(client, request)
 }
 
-func NewClients(config *config.ClientConfig) (model.Clients, error) {
-	clients := model.Clients{}
+func NewClient(config *config.ClientConfig) (model.Client, error) {
 	//初始化ECertClient
-	c, err := getCrypto(config.ECertClient.CryptoConfig)
+	c, err := getCrypto(config.CryptoConfig)
 	if err != nil {
-		return clients, err
+		return nil, err
 	}
 
-	clients.ECertClient = &clientImpl{
-		Url:        config.ECertClient.Url,
-		ServerName: config.ECertClient.ServerName,
-		Profile:    config.ECertClient.Profile,
+	return &clientImpl{
+		Url:        config.Url,
+		ServerName: config.ServerName,
+		Profile:    config.Profile,
 		Crypto:     c,
-		Algorithm:  config.ECertClient.Algorithm,
-		AdminKey:   config.ECertClient.AdminKey,
-		AdminCert:  config.ECertClient.AdminCert,
-	}
-	//初始化TlsCertClient
-	c, err = getCrypto(config.TlsCertClient.CryptoConfig)
-	if err != nil {
-		return clients, err
-	}
-
-	clients.TlsCertClient = &clientImpl{
-		Url:        config.TlsCertClient.Url,
-		ServerName: config.TlsCertClient.ServerName,
-		Profile:    config.TlsCertClient.Profile,
-		Crypto:     c,
-		Algorithm:  config.TlsCertClient.Algorithm,
-		AdminKey:   config.TlsCertClient.AdminKey,
-		AdminCert:  config.TlsCertClient.AdminCert,
-	}
-	return clients, nil
+		Algorithm:  config.Algorithm,
+		AdminKey:   config.AdminKey,
+		AdminCert:  config.AdminCert,
+	}, nil
 }
 
 func getCrypto(cc config.CryptoConfig) (crypto.Crypto, error) {

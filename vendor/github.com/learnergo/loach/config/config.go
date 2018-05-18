@@ -10,11 +10,6 @@ import (
 )
 
 type ClientConfig struct {
-	ECertClient   SingleClient `yaml:"ecert"`
-	TlsCertClient SingleClient `yaml:"tlscert"`
-}
-
-type SingleClient struct {
 	Url          string `yaml:"url"`
 	Profile      string `yaml:"profile"`
 	ServerName   string `yaml:"server_Name"`

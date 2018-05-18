@@ -13,7 +13,6 @@ import (
 	"github.com/learnergo/cuttle/node"
 	"github.com/learnergo/cuttle/utils"
 
-	"github.com/learnergo/loach"
 	"github.com/learnergo/loach/model"
 )
 
@@ -62,15 +61,15 @@ func RunSpeConfig() {
 		return
 	}
 	for _, value := range speConfig.Nodes {
-		clients, err := loach.NewClients(value.CaFile)
+		client, err := newClient(value.CaFile)
 
 		//generate ECert
-		err = generateECert(clients.ECertClient, value)
+		err = generateECert(client.ECertClient, value)
 		if err != nil {
 			return
 		}
 		//generate TlsCert
-		err = generateTlsCert(clients.TlsCertClient, value)
+		err = generateTlsCert(client.TlsCertClient, value)
 		if err != nil {
 			return
 		}
@@ -80,7 +79,7 @@ func RunSpeConfig() {
 func generatePeerOrg(peerOrg node.PeerOrg) error {
 
 	//加载ca客户端
-	clients, err := loach.NewClients(peerOrg.Admin.CaFile)
+	client, err := newClient(peerOrg.Admin.CaFile)
 	if err != nil {
 		log.Fatalf("Failed to load ca client ,err=%s", err)
 		return err
@@ -91,12 +90,12 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 
 	//generate Admin
 	//generate ECert
-	err = generateECert(clients.ECertClient, peerOrg.Admin)
+	err = generateECert(client.ECertClient, peerOrg.Admin)
 	if err != nil {
 		return err
 	}
 	//generate TlsCert
-	err = generateTlsCert(clients.TlsCertClient, peerOrg.Admin)
+	err = generateTlsCert(client.TlsCertClient, peerOrg.Admin)
 	if err != nil {
 		return err
 	}
@@ -112,7 +111,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 	for _, value := range peerOrg.Users {
 
 		//generate ECert
-		err = generateECert(clients.ECertClient, value)
+		err = generateECert(client.ECertClient, value)
 		if err != nil {
 			return err
 		}
@@ -123,7 +122,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 		}
 
 		//generate TlsCert
-		err := generateTlsCert(clients.TlsCertClient, value)
+		err := generateTlsCert(client.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
@@ -131,7 +130,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 	//generate Peers
 	for _, value := range peerOrg.Peers {
 		//generate ECert
-		err = generateECert(clients.ECertClient, value)
+		err = generateECert(client.ECertClient, value)
 		if err != nil {
 			return err
 		}
@@ -142,7 +141,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 		}
 
 		//generate TlsCert
-		err := generateTlsCert(clients.TlsCertClient, value)
+		err := generateTlsCert(client.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
@@ -153,7 +152,7 @@ func generatePeerOrg(peerOrg node.PeerOrg) error {
 
 func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 	//加载ca客户端
-	clients, err := loach.NewClients(ordererOrg.Admin.CaFile)
+	client, err := newClient(ordererOrg.Admin.CaFile)
 	if err != nil {
 		log.Fatalf("Failed to load ca client ,err=%s", err)
 		return err
@@ -164,12 +163,12 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 
 	//generate Admin
 	//generate ECert
-	err = generateECert(clients.ECertClient, ordererOrg.Admin)
+	err = generateECert(client.ECertClient, ordererOrg.Admin)
 	if err != nil {
 		return err
 	}
 	//generate TlsCert
-	err = generateTlsCert(clients.TlsCertClient, ordererOrg.Admin)
+	err = generateTlsCert(client.TlsCertClient, ordererOrg.Admin)
 	if err != nil {
 		return err
 	}
@@ -184,7 +183,7 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 	//generate Orderers
 	for _, value := range ordererOrg.Orderers {
 		//generate ECert
-		err = generateECert(clients.ECertClient, value)
+		err = generateECert(client.ECertClient, value)
 		if err != nil {
 			return err
 		}
@@ -195,7 +194,7 @@ func generateOrdererOrg(ordererOrg node.OrdererOrg) error {
 		}
 
 		//generate TlsCert
-		err := generateTlsCert(clients.TlsCertClient, value)
+		err := generateTlsCert(client.TlsCertClient, value)
 		if err != nil {
 			return err
 		}
